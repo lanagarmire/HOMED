@@ -5,7 +5,9 @@ Version: 0.1.0
 Author: Yuheng Du
 Maintainer: Yuheng Du <yhdu@umich.edu>
 Description: HOMED (Hierarchically Optimized Methylation Deconvolution) is a tool that utilizes the hierarchical cell type information to build FACS-based methylation reference panel and estimate cell counts.
-Imports: limma, lumi, nlme, genefilter, matrixStats, EpiDISH, doParallel, foreach, parallel, ggplot2, dplyr, RColorBrewer
+Imports: limma, lumi, nlme, genefilter, matrixStats, EpiDISH, doParallel, foreach, parallel, ggplot2, dplyr, RColorBrewer 
+Suggests: knitr, rmarkdown, Seurat
 License: GPL-2
 LazyData: true
-RoxygenNote: 7.1.2
+Config/roxygen2/version: 8.0.0
+Encoding: UTF-8
