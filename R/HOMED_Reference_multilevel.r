@@ -148,8 +148,9 @@ validationCellType <- function(Y, pheno, modelFix, modelBatch = NULL, L.forFstat
 #'   \item{LibrarySize}{Number of probes in library}
 #'
 #' @export
-IDOL_opt_rmse <- function(candDMRFinderObject, trainingBetas, trainingCovariates, libSize = 500, maxIt = 200, numCores = 4, 
-                          IDOLobj = TRUE, rmse_improve_thresh = 0.0001, rmse_for = c("Hofbauer"), batch_size = 5) {
+IDOL_opt_rmse <- function(candDMRFinderObject, trainingBetas, trainingCovariates, libSize = 500, maxIt = 200, numCores = 4, IDOLobj = TRUE, rmse_improve_thresh = 0.0001, rmse_for = c("Hofbauer"), batch_size = 5, seed = 42) {
+
+    set.seed(seed)
     
     # Helper functions
     expit <- function(w) exp(w) / (1 + exp(w))
@@ -214,6 +215,11 @@ IDOL_opt_rmse <- function(candDMRFinderObject, trainingBetas, trainingCovariates
     
     # Set up parallel processing
     cl <- makeCluster(numCores)
+
+    parallel::clusterSetRNGStream(
+        cl,
+        iseed = seed
+    )
     
     clusterEvalQ(cl, {
         Sys.setenv(
@@ -585,8 +591,8 @@ pickProbes_limma <- function(p, pd, level, numProbes = 500, p_val = 0.05, by = '
         
         design <- model.matrix(~ pd$status)
         
-        fit <- limma::lmFit(lumi::beta2m(p), design)
-        fit <- limma::eBayes(fit)
+        fit <- lmFit(beta2m(p), design)
+        fit <- eBayes(fit)
         
         table_limma <- topTable(fit, coef = 2, n = Inf)
         
@@ -699,7 +705,7 @@ pickProbes_limma <- function(p, pd, level, numProbes = 500, p_val = 0.05, by = '
 #'
 #' @export
 HOMED_Reference <- function(FACS_beta, FACS_pd, training_beta, training_prop, celltypes, p_val = 0.05, numProbes = 500,
-                            maxIt = c(100, 100), libSize = 500, rmse_improve_thresh = 0.001, batch_size = 5, numCores = 4) {
+                            maxIt = c(100, 100), libSize = 500, rmse_improve_thresh = 0.001, batch_size = 5, numCores = 4, seed = 42) {
 
     celltypes <- normalize_celltypes(celltypes)
     max_level <- get_tree_depth(celltypes)
@@ -735,7 +741,11 @@ HOMED_Reference <- function(FACS_beta, FACS_pd, training_beta, training_prop, ce
 
         layer_reference_list <- list()
 
-        for (ct in colnames(probes_limma_lvl$coefEsts)) {
+        cts <- colnames(probes_limma_lvl$coefEsts)
+
+        for (i in seq_along(cts)) {
+        
+            ct <- cts[i]
             message("Optimizing reference for level ", lvl, " cell type: ", ct)
 
             idol_res <- IDOL_opt_rmse(
@@ -748,7 +758,8 @@ HOMED_Reference <- function(FACS_beta, FACS_pd, training_beta, training_prop, ce
                 rmse_improve_thresh = rmse_improve_thresh,
                 rmse_for = ct,
                 batch_size = batch_size,
-                numCores = numCores
+                numCores = numCores,
+                seed = seed + lvl * 1000 + i
             )
 
             layer_reference_list[[ct]] <- idol_res$`IDOL Optimized CoefEsts`
